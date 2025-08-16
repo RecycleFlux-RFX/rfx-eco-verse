@@ -6,6 +6,11 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
+// Components
+import ProtectedRoute from "./components/ProtectedRoute";
+import DashboardRedirect from "./components/DashboardRedirect";
+import Navigation from "./components/Navigation";
+
 // Pages
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/auth/LoginPage";
@@ -46,38 +51,100 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/help" element={<HelpPage />} />
-              
-              {/* Auth Routes */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignupPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              
-              {/* User Routes */}
-              <Route path="/dashboard" element={<UserDashboard />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/wallet" element={<WalletPage />} />
-              <Route path="/games" element={<GamesPage />} />
-              <Route path="/campaigns" element={<CampaignsPage />} />
-              <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
-              <Route path="/leaderboard" element={<LeaderboardPage />} />
-              <Route path="/referrals" element={<ReferralsPage />} />
-              <Route path="/notifications" element={<NotificationsPage />} />
-              <Route path="/nft" element={<NFTPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              
-              {/* Admin Routes */}
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/super-admin" element={<SuperAdminDashboard />} />
-              
-              {/* Catch-all */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <div className="min-h-screen">
+              <Navigation />
+              <div className="pt-16">
+                <Routes>
+                  {/* Public Routes */}
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/about" element={<AboutPage />} />
+                  <Route path="/contact" element={<ContactPage />} />
+                  <Route path="/help" element={<HelpPage />} />
+                  
+                  {/* Auth Routes */}
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/signup" element={<SignupPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                  
+                  {/* Dashboard Redirect */}
+                  <Route path="/dashboard" element={<DashboardRedirect />} />
+                  
+                  {/* User Routes */}
+                  <Route path="/user-dashboard" element={
+                    <ProtectedRoute allowedRoles={['user', 'admin', 'super_admin']}>
+                      <UserDashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/profile" element={
+                    <ProtectedRoute allowedRoles={['user', 'admin', 'super_admin']}>
+                      <ProfilePage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/wallet" element={
+                    <ProtectedRoute allowedRoles={['user', 'admin', 'super_admin']}>
+                      <WalletPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/games" element={
+                    <ProtectedRoute allowedRoles={['user', 'admin', 'super_admin']}>
+                      <GamesPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/campaigns" element={
+                    <ProtectedRoute allowedRoles={['user', 'admin', 'super_admin']}>
+                      <CampaignsPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/campaigns/:id" element={
+                    <ProtectedRoute allowedRoles={['user', 'admin', 'super_admin']}>
+                      <CampaignDetailPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/leaderboard" element={
+                    <ProtectedRoute allowedRoles={['user', 'admin', 'super_admin']}>
+                      <LeaderboardPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/referrals" element={
+                    <ProtectedRoute allowedRoles={['user', 'admin', 'super_admin']}>
+                      <ReferralsPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/notifications" element={
+                    <ProtectedRoute allowedRoles={['user', 'admin', 'super_admin']}>
+                      <NotificationsPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/nft" element={
+                    <ProtectedRoute allowedRoles={['user', 'admin', 'super_admin']}>
+                      <NFTPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/settings" element={
+                    <ProtectedRoute allowedRoles={['user', 'admin', 'super_admin']}>
+                      <SettingsPage />
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* Admin Routes */}
+                  <Route path="/admin" element={
+                    <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* Super Admin Routes */}
+                  <Route path="/super-admin" element={
+                    <ProtectedRoute allowedRoles={['super_admin']}>
+                      <SuperAdminDashboard />
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* Catch-all */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </div>
+            </div>
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
