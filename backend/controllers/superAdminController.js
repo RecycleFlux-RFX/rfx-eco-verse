@@ -1,33 +1,53 @@
 const asyncHandler = require('express-async-handler');
 const PlatformSetting = require('../models/PlatformSetting');
 const User = require('../models/User');
+const Transaction = require('../models/Transaction'); // Import Transaction model
 
 // --- Dashboard Summary ---
 const getDashboardSummary = asyncHandler(async (req, res) => {
-  // Mock data for now, as calculating all these metrics can be complex
+  const totalPlatformUsers = await User.countDocuments({});
+
+  const oneMonthAgo = new Date();
+  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+  const newUsersLastMonth = await User.countDocuments({ joinedAt: { $gte: oneMonthAgo } });
+  const totalUsersBeforeLastMonth = totalPlatformUsers - newUsersLastMonth;
+  const newUsersLastMonthPercentage = totalUsersBeforeLastMonth > 0 ? (newUsersLastMonth / totalUsersBeforeLastMonth) * 100 : 0;
+
+  const rfxTokensDistributedResult = await Transaction.aggregate([
+    { $match: { type: { $in: ['earning', 'bonus', 'referral_bonus'] }, currency: 'RFX' } },
+    { $group: { _id: null, total: { $sum: '$amount' } } }
+  ]);
+  const rfxTokensDistributed = rfxTokensDistributedResult.length > 0 ? rfxTokensDistributedResult[0].total : 0;
+
+  // Fetch platform settings
+  const dailyRewardAmountSetting = await PlatformSetting.findOne({ key: 'dailyRewardAmount' });
+  const campaignRewardLimitSetting = await PlatformSetting.findOne({ key: 'campaignRewardLimit' });
+  const referralBonusSetting = await PlatformSetting.findOne({ key: 'referralBonus' });
+  const maintenanceModeSetting = await PlatformSetting.findOne({ key: 'maintenanceMode' });
+
   res.json({
-    totalPlatformUsers: 12345,
-    newUsersLastMonthPercentage: 15,
-    rfxTokensDistributed: 5000000,
-    platformRevenueMonthly: 25000,
-    systemUptimePercentage: 99.9,
-    dailyRewardAmount: 10,
-    campaignRewardLimit: 1000,
-    referralBonus: 50,
-    maintenanceMode: 'Inactive',
-    databaseTotalRecords: 1234567,
-    databaseStorageUsedGB: 25.6,
-    databaseQueryPerformance: 'Good',
-    activeSessions: 1234,
-    countriesCount: 88,
-    peakConcurrentUsers: 5678,
-    sslStatus: 'OK',
-    firewallStatus: 'OK',
-    threatsBlockedCount: 123,
+    totalPlatformUsers,
+    newUsersLastMonthPercentage: newUsersLastMonthPercentage.toFixed(2),
+    rfxTokensDistributed,
+    platformRevenueMonthly: 45200, // Mock data, requires more complex logic
+    systemUptimePercentage: 99.9, // Mock data
+    dailyRewardAmount: dailyRewardAmountSetting ? dailyRewardAmountSetting.value : 0,
+    campaignRewardLimit: campaignRewardLimitSetting ? campaignRewardLimitSetting.value : 0,
+    referralBonus: referralBonusSetting ? referralBonusSetting.value : 0,
+    maintenanceMode: maintenanceModeSetting ? maintenanceModeSetting.value : 'N/A',
+    databaseTotalRecords: 847000, // Mock data
+    databaseStorageUsedGB: 2.3, // Mock data
+    databaseQueryPerformance: 'Optimal', // Mock data
+    activeSessions: 3247, // Mock data
+    countriesCount: 89, // Mock data
+    peakConcurrentUsers: 8921, // Mock data
+    sslStatus: 'OK', // Mock data
+    firewallStatus: 'OK', // Mock data
+    threatsBlockedCount: 247, // Mock data
     alerts: [
-      { type: 'warning', message: 'High CPU Usage', details: 'CPU usage is at 85%' },
-      { type: 'info', message: 'New Admin Added', details: 'A new admin was added to the system' },
-    ],
+      { type: 'warning', message: 'High Token Distribution Rate', details: 'Daily RFX distribution exceeding 95% of daily limit' },
+      { type: 'info', message: 'System Backup Completed', details: 'Automated daily backup successful at 3:00 AM UTC' }
+    ], // Mock data
   });
 });
 

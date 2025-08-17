@@ -23,8 +23,13 @@ app.use(express.json()); // For parsing application/json
 app.use(cors()); // Enable CORS for all routes
 
 // Connect to MongoDB
+const seedDatabase = require('./seeders');
+
 mongoose.connect(MONGO_URI)
-  .then(() => console.log('MongoDB connected successfully'))
+  .then(() => {
+    console.log('MongoDB connected successfully');
+    seedDatabase(); // Call the main seeder after successful connection
+  })
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Health Check Endpoint

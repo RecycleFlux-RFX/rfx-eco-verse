@@ -2,18 +2,18 @@ const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const generateToken = require('../utils/jwt');
 const crypto = require('crypto');
+const { validationResult } = require('express-validator');
 
 // @desc    Register new user
 // @route   POST /api/auth/signup
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
-  const { username, email, password } = req.body;
-
-  // Basic validation
-  if (!username || !email || !password) {
-    res.status(400);
-    throw new Error('Please enter all fields');
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
   }
+
+  const { username, email, password } = req.body;
 
   // Check if user exists
   const userExists = await User.findOne({ email });
@@ -59,13 +59,12 @@ const registerUser = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 const loginUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
-
-  // Basic validation
-  if (!email || !password) {
-    res.status(400);
-    throw new Error('Please enter all fields');
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
   }
+
+  const { email, password } = req.body;
 
   // Check for user email
   const user = await User.findOne({ email }).select('+password'); // Select password to compare
@@ -98,58 +97,74 @@ const loginUser = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/forgot-password
 // @access  Public
 const forgotPassword = asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   const { email } = req.body;
 
   const user = await User.findOne({ email });
 
   if (!user) {
     res.status(404);
-    throw new Error('User with this email not found.');
+    throw new Error('User with that email not found');
   }
 
-  // Generate reset token (for simplicity, not sending email yet)
-  const resetToken = crypto.randomBytes(20).toString('hex');
-  // In a real app, you would save this token to the user in the DB with an expiry
-  // and send it via email.
+  // Get reset token
+  const resetToken = user.getResetPasswordToken();
+  await user.save({ validateBeforeSave: false }); // Save user with new token
+
+  // Create reset URL (frontend will use this)
+  const resetURL = `${req.protocol}://${req.get('host')}/reset-password/${resetToken}`;
+
+  // In a real app, you would send this email using a service like Nodemailer
+  console.log(`Password Reset URL: ${resetURL}`); // For development/testing
 
   res.status(200).json({
-    message: 'Password reset link sent to your email. (Simulated)',
+    success: true,
+    message: 'Password reset email sent (check console for URL)',
     resetToken: resetToken // For testing, remove in production
   });
 });
 
 // @desc    Reset password with token
-// @route   POST /api/auth/reset-password
+// @route   POST /api/auth/reset-password/:token
 // @access  Public
 const resetPassword = asyncHandler(async (req, res) => {
-  const { token, newPassword } = req.body;
-
-  // In a real app, you would verify the token against the one stored in the DB
-  // and check its expiry.
-  if (!token || !newPassword) {
-    res.status(400);
-    throw new Error('Please provide token and new password');
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
   }
 
-  // Simulate token verification
-  if (token !== 'test_reset_token') { // Replace with actual token verification
-    res.status(400);
-    throw new Error('Invalid or expired token.');
-  }
+  const { token } = req.params;
+  const { newPassword } = req.body;
 
-  // Find user by token (simulated)
-  const user = await User.findOne({ email: 'test@example.com' }); // Replace with actual user lookup by token
+  // Hash URL token
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(token)
+    .digest('hex');
+
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpire: { $gt: Date.now() },
+  });
 
   if (!user) {
     res.status(400);
-    throw new Error('Invalid or expired token.');
+    throw new Error('Invalid or expired reset token');
   }
 
-  user.password = newPassword; // Password will be hashed by pre-save hook
+  // Set new password
+  user.password = newPassword;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpire = undefined;
   await user.save();
 
   res.status(200).json({
-    message: 'Password has been reset successfully.'
+    success: true,
+    message: 'Password reset successfully',
   });
 });
 
