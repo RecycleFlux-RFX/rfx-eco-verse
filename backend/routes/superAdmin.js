@@ -1,0 +1,26 @@
+const express = require('express');
+const router = express.Router();
+const {
+  getPlatformSettings,
+  updatePlatformSettings,
+  getAdmins,
+  addAdmin,
+  updateAdmin,
+  removeAdmin,
+} = require('../controllers/superAdminController');
+const { protect, authorizeRoles } = require('../middleware/authMiddleware');
+
+// Platform Settings
+router.route('/settings')
+  .get(protect, authorizeRoles('super_admin'), getPlatformSettings)
+  .patch(protect, authorizeRoles('super_admin'), updatePlatformSettings);
+
+// Admin Management
+router.route('/admins')
+  .get(protect, authorizeRoles('super_admin'), getAdmins)
+  .post(protect, authorizeRoles('super_admin'), addAdmin);
+router.route('/admins/:id')
+  .patch(protect, authorizeRoles('super_admin'), updateAdmin)
+  .delete(protect, authorizeRoles('super_admin'), removeAdmin);
+
+module.exports = router;

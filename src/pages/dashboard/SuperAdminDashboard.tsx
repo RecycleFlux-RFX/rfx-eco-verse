@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Crown, 
-  Users, 
-  Target, 
+import axios from 'axios';
+import {
+  Crown,
+  Users,
+  Target,
   Gamepad2,
   Settings,
   BarChart3,
@@ -25,8 +26,79 @@ import {
   Trash2
 } from 'lucide-react';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+
+interface SuperAdminDashboardData {
+  totalPlatformUsers: number;
+  newUsersLastMonthPercentage: number;
+  rfxTokensDistributed: number;
+  platformRevenueMonthly: number;
+  systemUptimePercentage: number;
+  dailyRewardAmount: number;
+  campaignRewardLimit: number;
+  referralBonus: number;
+  maintenanceMode: string;
+  databaseTotalRecords: number;
+  databaseStorageUsedGB: number;
+  databaseQueryPerformance: string;
+  activeSessions: number;
+  countriesCount: number;
+  peakConcurrentUsers: number;
+  sslStatus: string;
+  firewallStatus: string;
+  threatsBlockedCount: number;
+  alerts: { type: string; message: string; details: string; }[];
+}
+
 const SuperAdminDashboard = () => {
   const { user } = useAuth();
+  const [dashboardData, setDashboardData] = useState<SuperAdminDashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!user || user.role !== 'super_admin') {
+        setIsLoading(false);
+        setError('You don\'t have permission to access this page.');
+        return;
+      }
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await axios.get<SuperAdminDashboardData>(`${API_BASE_URL}/super-admin/dashboard-summary`);
+        setDashboardData(response.data);
+      } catch (err: any) {
+        console.error('Failed to fetch super admin dashboard data:', err.response?.data?.message || err.message);
+        setError(err.response?.data?.message || 'Failed to load dashboard data.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [user]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen animated-bg p-6 flex items-center justify-center">
+        <Card className="glass-card p-8 text-center">
+          <CardTitle className="text-2xl mb-4">Loading Super Admin Dashboard...</CardTitle>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen animated-bg p-6 flex items-center justify-center">
+        <Card className="glass-card p-8 text-center">
+          <CardTitle className="text-2xl mb-4">Access Denied</CardTitle>
+          <CardDescription>{error}</CardDescription>
+        </Card>
+      </div>
+    );
+  }
 
   if (!user || user.role !== 'super_admin') {
     return (
@@ -61,10 +133,10 @@ const SuperAdminDashboard = () => {
               <Users className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">12,847</div>
+              <div className="text-2xl font-bold">{dashboardData?.totalPlatformUsers}</div>
               <p className="text-xs text-muted-foreground">
                 <TrendingUp className="inline w-3 h-3 mr-1" />
-                +18.2% from last month
+                +{dashboardData?.newUsersLastMonthPercentage}% from last month
               </p>
             </CardContent>
           </Card>
@@ -75,7 +147,7 @@ const SuperAdminDashboard = () => {
               <Zap className="h-4 w-4 text-accent" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">2.4M</div>
+              <div className="text-2xl font-bold">{dashboardData?.rfxTokensDistributed / 1000000}M</div>
               <p className="text-xs text-muted-foreground">
                 Total ecosystem circulation
               </p>
@@ -88,7 +160,7 @@ const SuperAdminDashboard = () => {
               <DollarSign className="h-4 w-4 text-secondary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">$45.2K</div>
+              <div className="text-2xl font-bold">${(dashboardData?.platformRevenueMonthly / 1000).toFixed(1)}K</div>
               <p className="text-xs text-muted-foreground">
                 Monthly recurring revenue
               </p>
@@ -101,7 +173,7 @@ const SuperAdminDashboard = () => {
               <Activity className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-success">99.9%</div>
+              <div className="text-2xl font-bold text-success">{dashboardData?.systemUptimePercentage}%</div>
               <p className="text-xs text-muted-foreground">
                 Uptime this month
               </p>
@@ -132,28 +204,28 @@ const SuperAdminDashboard = () => {
                     <p className="text-sm font-medium">Daily Reward Amount</p>
                     <p className="text-xs text-muted-foreground">Base RFX for daily login</p>
                   </div>
-                  <Badge variant="outline">5 RFX</Badge>
+                  <Badge variant="outline">{dashboardData?.dailyRewardAmount} RFX</Badge>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
                   <div>
                     <p className="text-sm font-medium">Campaign Reward Limit</p>
                     <p className="text-xs text-muted-foreground">Max RFX per campaign</p>
                   </div>
-                  <Badge variant="outline">500 RFX</Badge>
+                  <Badge variant="outline">{dashboardData?.campaignRewardLimit} RFX</Badge>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
                   <div>
                     <p className="text-sm font-medium">Referral Bonus</p>
                     <p className="text-xs text-muted-foreground">RFX for successful referral</p>
                   </div>
-                  <Badge variant="outline">25 RFX</Badge>
+                  <Badge variant="outline">{dashboardData?.referralBonus} RFX</Badge>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
                   <div>
                     <p className="text-sm font-medium">Maintenance Mode</p>
                     <p className="text-xs text-muted-foreground">Platform accessibility</p>
                   </div>
-                  <Badge className="bg-success/20 text-success">Active</Badge>
+                  <Badge className={dashboardData?.maintenanceMode === 'Active' ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"}>{dashboardData?.maintenanceMode}</Badge>
                 </div>
               </div>
             </CardContent>
@@ -175,7 +247,7 @@ const SuperAdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {[
+                {[ // This data should be fetched from /api/super-admin/admins
                   { name: 'David Wilson', email: 'david@rfx.com', status: 'Active', lastLogin: '2 hours ago' },
                   { name: 'Emma Johnson', email: 'emma@rfx.com', status: 'Active', lastLogin: '1 day ago' },
                   { name: 'Mike Brown', email: 'mike@rfx.com', status: 'Suspended', lastLogin: '1 week ago' },
@@ -219,15 +291,15 @@ const SuperAdminDashboard = () => {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-sm">Total Records</span>
-                  <span className="font-medium">847K</span>
+                  <span className="font-medium">{dashboardData?.databaseTotalRecords / 1000}K</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Storage Used</span>
-                  <span className="font-medium">2.3 GB</span>
+                  <span className="font-medium">{dashboardData?.databaseStorageUsedGB} GB</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Query Performance</span>
-                  <Badge className="bg-success/20 text-success">Optimal</Badge>
+                  <Badge className="bg-success/20 text-success">{dashboardData?.databaseQueryPerformance}</Badge>
                 </div>
               </div>
             </CardContent>
@@ -244,15 +316,15 @@ const SuperAdminDashboard = () => {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-sm">Active Sessions</span>
-                  <span className="font-medium">3,247</span>
+                  <span className="font-medium">{dashboardData?.activeSessions}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Countries</span>
-                  <span className="font-medium">89</span>
+                  <span className="font-medium">{dashboardData?.countriesCount}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Peak Concurrent</span>
-                  <span className="font-medium">8,921</span>
+                  <span className="font-medium">{dashboardData?.peakConcurrentUsers}</span>
                 </div>
               </div>
             </CardContent>
@@ -269,15 +341,15 @@ const SuperAdminDashboard = () => {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm">SSL Status</span>
-                  <CheckCircle className="w-4 h-4 text-success" />
+                  {dashboardData?.sslStatus === 'OK' ? <CheckCircle className="w-4 h-4 text-success" /> : <AlertTriangle className="w-4 h-4 text-destructive" />}
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Firewall</span>
-                  <CheckCircle className="w-4 h-4 text-success" />
+                  {dashboardData?.firewallStatus === 'OK' ? <CheckCircle className="w-4 h-4 text-success" /> : <AlertTriangle className="w-4 h-4 text-destructive" />}
                 </div>
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between">
                   <span className="text-sm">Threats Blocked</span>
-                  <span className="font-medium">247</span>
+                  <span className="font-medium">{dashboardData?.threatsBlockedCount}</span>
                 </div>
               </div>
             </CardContent>
@@ -294,26 +366,27 @@ const SuperAdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-warning/10 border border-warning/20">
-                <div>
-                  <p className="text-sm font-medium">High Token Distribution Rate</p>
-                  <p className="text-xs text-muted-foreground">
-                    Daily RFX distribution exceeding 95% of daily limit
-                  </p>
-                </div>
-                <Button size="sm" variant="outline">
-                  Review Limits
-                </Button>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-success/10 border border-success/20">
-                <div>
-                  <p className="text-sm font-medium">System Backup Completed</p>
-                  <p className="text-xs text-muted-foreground">
-                    Automated daily backup successful at 3:00 AM UTC
-                  </p>
-                </div>
-                <CheckCircle className="w-5 h-5 text-success" />
-              </div>
+              {dashboardData?.alerts.length > 0 ? (
+                dashboardData.alerts.map((alert, index) => (
+                  <div key={index} className={`flex items-center justify-between p-3 rounded-lg ${alert.type === 'warning' ? 'bg-warning/10 border border-warning/20' : 'bg-success/10 border border-success/20'}`}>
+                    <div>
+                      <p className="text-sm font-medium">{alert.message}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {alert.details}
+                      </p>
+                    </div>
+                    {alert.type === 'warning' ? (
+                      <Button size="sm" variant="outline">
+                        Review Limits
+                      </Button>
+                    ) : (
+                      <CheckCircle className="w-5 h-5 text-success" />
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">No platform alerts.</p>
+              )}
             </div>
           </CardContent>
         </Card>

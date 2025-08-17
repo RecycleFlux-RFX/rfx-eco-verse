@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import axios from 'axios';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 export interface User {
   id: string;
@@ -43,15 +46,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Axios Interceptor for JWT
+  axios.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem('rfx_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
+    }
+  );
+
   useEffect(() => {
-    // Check for stored auth state
     const storedUser = localStorage.getItem('rfx_user');
-    if (storedUser) {
+    const storedToken = localStorage.getItem('rfx_token');
+
+    if (storedUser && storedToken) {
       try {
         setUser(JSON.parse(storedUser));
       } catch (error) {
-        console.error('Failed to parse stored user:', error);
+        console.error('Failed to parse stored user or token:', error);
         localStorage.removeItem('rfx_user');
+        localStorage.removeItem('rfx_token');
       }
     }
     setIsLoading(false);
@@ -60,29 +79,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock user data - in real app, this would come from API
-      const mockUser: User = {
-        id: '1',
-        email,
-        username: email.split('@')[0],
-        role: email.includes('admin') ? 'admin' : email.includes('super') ? 'super_admin' : 'user',
-        level: 5,
-        xp: 2340,
-        rfxBalance: 150.75,
-        co2Saved: 45.2,
-        joinedAt: '2024-01-15',
-        achievements: ['first_campaign', 'eco_warrior', 'referral_master'],
-        referralCode: 'RFX' + Math.random().toString(36).substr(2, 6).toUpperCase(),
-      };
-      
-      setUser(mockUser);
-      localStorage.setItem('rfx_user', JSON.stringify(mockUser));
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, { email, password });
+      const { token, user: userData } = response.data;
+
+      localStorage.setItem('rfx_token', token);
+      localStorage.setItem('rfx_user', JSON.stringify(userData));
+      setUser(userData);
       setIsLoading(false);
       return true;
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Login failed:', error.response?.data?.message || error.message);
       setIsLoading(false);
       return false;
     }
@@ -91,28 +97,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signup = async (email: string, password: string, username: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newUser: User = {
-        id: Date.now().toString(),
-        email,
-        username,
-        role: 'user',
-        level: 1,
-        xp: 0,
-        rfxBalance: 10, // Welcome bonus
-        co2Saved: 0,
-        joinedAt: new Date().toISOString().split('T')[0],
-        achievements: [],
-        referralCode: 'RFX' + Math.random().toString(36).substr(2, 6).toUpperCase(),
-      };
-      
-      setUser(newUser);
-      localStorage.setItem('rfx_user', JSON.stringify(newUser));
+      const response = await axios.post(`${API_BASE_URL}/auth/signup`, { username, email, password });
+      const { token, user: userData } = response.data;
+
+      localStorage.setItem('rfx_token', token);
+      localStorage.setItem('rfx_user', JSON.stringify(userData));
+      setUser(userData);
       setIsLoading(false);
       return true;
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Signup failed:', error.response?.data?.message || error.message);
       setIsLoading(false);
       return false;
     }
@@ -121,6 +115,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('rfx_user');
+    localStorage.removeItem('rfx_token');
   };
 
   const updateUser = (updates: Partial<User>) => {
@@ -128,6 +123,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const updatedUser = { ...user, ...updates };
       setUser(updatedUser);
       localStorage.setItem('rfx_user', JSON.stringify(updatedUser));
+      // In a real app, you'd also send this update to the backend
+      // axios.patch(`${API_BASE_URL}/user/profile`, updates);
     }
   };
 

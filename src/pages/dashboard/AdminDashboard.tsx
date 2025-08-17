@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Users, 
-  Target, 
-  CheckCircle, 
+import axios from 'axios';
+import {
+  Users,
+  Target,
+  CheckCircle,
   AlertCircle,
   TrendingUp,
   Calendar,
@@ -17,15 +18,73 @@ import {
   Plus
 } from 'lucide-react';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+
+interface AdminDashboardData {
+  totalUsers: number;
+  newUsersLastMonthPercentage: number;
+  activeCampaignsCount: number;
+  pendingCampaignApprovalsCount: number;
+  pendingReviewsCount: number;
+  completedSubmissionsTodayCount: number;
+}
+
 const AdminDashboard = () => {
   const { user } = useAuth();
+  const [dashboardData, setDashboardData] = useState<AdminDashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!user || user.role !== 'admin') {
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+        setIsLoading(false);
+        setError('You don\'t have permission to access this page.');
+        return;
+      }
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await axios.get<AdminDashboardData>(`${API_BASE_URL}/admin/dashboard-summary`);
+        setDashboardData(response.data);
+      } catch (err: any) {
+        console.error('Failed to fetch admin dashboard data:', err.response?.data?.message || err.message);
+        setError(err.response?.data?.message || 'Failed to load dashboard data.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [user]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen animated-bg p-6 flex items-center justify-center">
+        <Card className="glass-card p-8 text-center">
+          <CardTitle className="text-2xl mb-4">Loading Admin Dashboard...</CardTitle>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen animated-bg p-6 flex items-center justify-center">
+        <Card className="glass-card p-8 text-center">
+          <CardTitle className="text-2xl mb-4">Access Denied</CardTitle>
+          <CardDescription>{error}</CardDescription>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
     return (
       <div className="min-h-screen animated-bg flex items-center justify-center">
         <Card className="glass-card p-8 text-center">
           <CardTitle className="text-2xl mb-4">Access Denied</CardTitle>
-          <CardDescription>You don't have permission to access this page.</CardDescription>
+          <CardDescription>You don\'t have permission to access this page.</CardDescription>
         </Card>
       </div>
     );
@@ -52,10 +111,10 @@ const AdminDashboard = () => {
               <Users className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">2,847</div>
+              <div className="text-2xl font-bold">{dashboardData?.totalUsers}</div>
               <p className="text-xs text-muted-foreground">
                 <TrendingUp className="inline w-3 h-3 mr-1" />
-                +8.2% from last month
+                +{dashboardData?.newUsersLastMonthPercentage}% from last month
               </p>
             </CardContent>
           </Card>
@@ -66,9 +125,9 @@ const AdminDashboard = () => {
               <Target className="h-4 w-4 text-secondary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">24</div>
+              <div className="text-2xl font-bold">{dashboardData?.activeCampaignsCount}</div>
               <p className="text-xs text-muted-foreground">
-                6 pending approval
+                {dashboardData?.pendingCampaignApprovalsCount} pending approval
               </p>
             </CardContent>
           </Card>
@@ -79,7 +138,7 @@ const AdminDashboard = () => {
               <AlertCircle className="h-4 w-4 text-accent" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">143</div>
+              <div className="text-2xl font-bold">{dashboardData?.pendingReviewsCount}</div>
               <p className="text-xs text-muted-foreground">
                 User submissions
               </p>
@@ -92,7 +151,7 @@ const AdminDashboard = () => {
               <CheckCircle className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">87</div>
+              <div className="text-2xl font-bold">{dashboardData?.completedSubmissionsTodayCount}</div>
               <p className="text-xs text-muted-foreground">
                 Campaign submissions
               </p>
@@ -118,7 +177,7 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {[
+                {[ // This data should be fetched from /api/admin/users
                   { name: 'Alice Cooper', email: 'alice@example.com', status: 'Active', role: 'User' },
                   { name: 'Bob Smith', email: 'bob@example.com', status: 'Suspended', role: 'User' },
                   { name: 'Carol Johnson', email: 'carol@example.com', status: 'Active', role: 'Admin' },
@@ -167,7 +226,7 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {[
+                {[ // This data should be fetched from /api/admin/campaigns
                   { name: 'Beach Cleanup Drive', status: 'Active', participants: 156 },
                   { name: 'Tree Planting Initiative', status: 'Pending', participants: 89 },
                   { name: 'Recycling Challenge', status: 'Completed', participants: 234 },
@@ -213,7 +272,7 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[
+              {[ // This data should be fetched from /api/admin/submissions/pending
                 { 
                   user: 'Sarah Wilson', 
                   campaign: 'Beach Cleanup Drive', 

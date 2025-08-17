@@ -7,6 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Leaf, Mail, ArrowLeft, CheckCircle } from 'lucide-react';
+import axios from 'axios';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
@@ -22,16 +25,15 @@ const ForgotPasswordPage = () => {
     setError('');
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await axios.post(`${API_BASE_URL}/auth/forgot-password`, { email });
       
       setIsEmailSent(true);
       toast({
         title: "Reset email sent",
-        description: "Check your email for password reset instructions.",
+        description: response.data.message || "Check your email for password reset instructions.",
       });
-    } catch (err) {
-      setError('Failed to send reset email. Please try again.');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to send reset email. Please try again.');
     } finally {
       setIsLoading(false);
     }
