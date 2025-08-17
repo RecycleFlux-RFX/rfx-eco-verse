@@ -32,30 +32,59 @@ interface AdminDashboardData {
 const AdminDashboard = () => {
   const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState<AdminDashboardData | null>(null);
+  const [users, setUsers] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
-        setIsLoading(false);
-        setError('You don\'t have permission to access this page.');
-        return;
-      }
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await axios.get<AdminDashboardData>(`${API_BASE_URL}/admin/dashboard-summary`);
-        setDashboardData(response.data);
-      } catch (err: any) {
-        console.error('Failed to fetch admin dashboard data:', err.response?.data?.message || err.message);
-        setError(err.response?.data?.message || 'Failed to load dashboard data.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchAllData = async () => {
+    if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+      setIsLoading(false);
+      setError('You don\'t have permission to access this page.');
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [dashboardResponse, usersResponse, campaignsResponse, submissionsResponse] = await Promise.all([
+        axios.get<AdminDashboardData>(`${API_BASE_URL}/admin/dashboard-summary`),
+        axios.get(`${API_BASE_URL}/admin/users`),
+        axios.get(`${API_BASE_URL}/admin/campaigns`),
+        axios.get(`${API_BASE_URL}/admin/submissions/pending`)
+      ]);
+      setDashboardData(dashboardResponse.data);
+      setUsers(usersResponse.data);
+      setCampaigns(campaignsResponse.data);
+      setSubmissions(submissionsResponse.data);
+    } catch (err: any) {
+      console.error('Failed to fetch admin dashboard data:', err.response?.data?.message || err.message);
+      setError(err.response?.data?.message || 'Failed to load dashboard data.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    fetchDashboardData();
+  const handleApproveSubmission = async (submissionId: string) => {
+    try {
+      await axios.post(`${API_BASE_URL}/admin/submissions/${submissionId}/approve`);
+      fetchAllData(); // Refresh data
+    } catch (error) {
+      console.error('Error approving submission:', error);
+    }
+  };
+
+  const handleRejectSubmission = async (submissionId: string) => {
+    try {
+      await axios.post(`${API_BASE_URL}/admin/submissions/${submissionId}/reject`);
+      fetchAllData(); // Refresh data
+    } catch (error) {
+      console.error('Error rejecting submission:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllData();
   }, [user]);
 
   if (isLoading) {
@@ -177,22 +206,17 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {[ // This data should be fetched from /api/admin/users
-                  { name: 'Alice Cooper', email: 'alice@example.com', status: 'Active', role: 'User' },
-                  { name: 'Bob Smith', email: 'bob@example.com', status: 'Suspended', role: 'User' },
-                  { name: 'Carol Johnson', email: 'carol@example.com', status: 'Active', role: 'Admin' },
-                ].map((user, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
+                {users.slice(0, 3).map((user: any) => (
+                  <div key={user._id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
                     <div>
-                      <p className="text-sm font-medium">{user.name}</p>
+                      <p className="text-sm font-medium">{user.username}</p>
                       <p className="text-xs text-muted-foreground">{user.email}</p>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Badge 
-                        variant={user.status === 'Active' ? 'default' : 'destructive'}
+                      <Badge
                         className="text-xs"
                       >
-                        {user.status}
+                        {user.role}
                       </Badge>
                       <Button size="sm" variant="ghost">
                         <Eye className="w-3 h-3" />
@@ -204,9 +228,11 @@ const AdminDashboard = () => {
                   </div>
                 ))}
               </div>
-              <Button variant="outline" className="w-full mt-4">
-                View All Users
-              </Button>
+              <Link to="/admin/users">
+                <Button variant="outline" className="w-full mt-4">
+                  View All Users
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
@@ -218,29 +244,27 @@ const AdminDashboard = () => {
                   <Target className="w-5 h-5 mr-2" />
                   Campaign Management
                 </span>
-                <Button size="sm" className="bg-gradient-secondary hover:opacity-90">
-                  <Plus className="w-4 h-4 mr-1" />
-                  New Campaign
-                </Button>
+                <Link to="/admin/campaigns/add">
+                  <Button size="sm" className="bg-gradient-secondary hover:opacity-90">
+                    <Plus className="w-4 h-4 mr-1" />
+                    New Campaign
+                  </Button>
+                </Link>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {[ // This data should be fetched from /api/admin/campaigns
-                  { name: 'Beach Cleanup Drive', status: 'Active', participants: 156 },
-                  { name: 'Tree Planting Initiative', status: 'Pending', participants: 89 },
-                  { name: 'Recycling Challenge', status: 'Completed', participants: 234 },
-                ].map((campaign, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
+                {campaigns.slice(0, 3).map((campaign: any) => (
+                  <div key={campaign._id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
                     <div>
-                      <p className="text-sm font-medium">{campaign.name}</p>
-                      <p className="text-xs text-muted-foreground">{campaign.participants} participants</p>
+                      <p className="text-sm font-medium">{campaign.title}</p>
+                      <p className="text-xs text-muted-foreground">{campaign.participantsCount} participants</p>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Badge 
+                      <Badge
                         variant={
-                          campaign.status === 'Active' ? 'default' :
-                          campaign.status === 'Pending' ? 'secondary' : 
+                          campaign.status === 'active' ? 'default' :
+                          campaign.status === 'pending' ? 'secondary' :
                           'outline'
                         }
                         className="text-xs"
@@ -254,9 +278,11 @@ const AdminDashboard = () => {
                   </div>
                 ))}
               </div>
-              <Button variant="outline" className="w-full mt-4">
-                View All Campaigns
-              </Button>
+              <Link to="/admin/campaigns">
+                <Button variant="outline" className="w-full mt-4">
+                  View All Campaigns
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>
@@ -272,46 +298,26 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[ // This data should be fetched from /api/admin/submissions/pending
-                { 
-                  user: 'Sarah Wilson', 
-                  campaign: 'Beach Cleanup Drive', 
-                  type: 'Photo Submission',
-                  time: '2 hours ago',
-                  status: 'pending'
-                },
-                { 
-                  user: 'Mike Johnson', 
-                  campaign: 'Recycling Challenge', 
-                  type: 'Video Submission',
-                  time: '4 hours ago',
-                  status: 'pending'
-                },
-                { 
-                  user: 'Emma Davis', 
-                  campaign: 'Tree Planting Initiative', 
-                  type: 'Photo Submission',
-                  time: '6 hours ago',
-                  status: 'pending'
-                },
-              ].map((submission, index) => (
-                <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-muted/20">
+              {submissions.map((submission: any) => (
+                <div key={submission._id} className="flex items-center justify-between p-4 rounded-lg bg-muted/20">
                   <div>
-                    <p className="text-sm font-medium">{submission.user} - {submission.type}</p>
+                    <p className="text-sm font-medium">{submission.user.username} - {submission.campaign.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {submission.campaign} • {submission.time}
+                      {new Date(submission.createdAt).toLocaleString()}
                     </p>
                   </div>
                   <div className="flex space-x-2">
-                    <Button size="sm" className="bg-gradient-accent hover:opacity-90">
+                    <Button size="sm" className="bg-gradient-accent hover:opacity-90" onClick={() => handleApproveSubmission(submission._id)}>
                       <CheckCircle className="w-3 h-3 mr-1" />
                       Approve
                     </Button>
-                    <Button size="sm" variant="outline">
-                      <Eye className="w-3 h-3 mr-1" />
-                      Review
-                    </Button>
-                    <Button size="sm" variant="destructive">
+                    <Link to={`/admin/submissions/review/${submission._id}`}>
+                      <Button size="sm" variant="outline">
+                        <Eye className="w-3 h-3 mr-1" />
+                        Review
+                      </Button>
+                    </Link>
+                    <Button size="sm" variant="destructive" onClick={() => handleRejectSubmission(submission._id)}>
                       <Trash2 className="w-3 h-3" />
                     </Button>
                   </div>

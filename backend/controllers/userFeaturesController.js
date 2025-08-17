@@ -26,27 +26,25 @@ const getWallet = asyncHandler(async (req, res) => {
 // @access  Private
 const getReferrals = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id).select('referralCode');
-  // In a real app, you'd query for users who used this referral code
-  // and calculate rewards based on your referral logic.
-  const referredUsersCount = 5; // Mock data
-  const totalEarnedFromReferrals = 25.00; // Mock data
-  const referredUsers = [
-    { id: 'ref_user_1', username: 'friend_one', joinedAt: '2024-07-10', status: 'active' },
-    { id: 'ref_user_2', username: 'friend_two', joinedAt: '2024-07-12', status: 'pending_bonus' }
-  ]; // Mock data
 
-  if (user) {
-    res.json({
-      referralCode: user.referralCode || 'GENERATE_CODE',
-      referralLink: `https://rfx-ecoverse.com/signup?ref=${user.referralCode || 'GENERATE_CODE'}`,
-      referredUsersCount,
-      totalEarnedFromReferrals,
-      referredUsers,
-    });
-  } else {
+  if (!user) {
     res.status(404);
     throw new Error('User not found');
   }
+
+  const referredUsers = await User.find({ referredBy: req.user.id }).select('username joinedAt');
+  const referredUsersCount = referredUsers.length;
+
+  const referralBonuses = await Transaction.find({ user: req.user.id, type: 'referral_bonus' });
+  const totalEarnedFromReferrals = referralBonuses.reduce((acc, bonus) => acc + bonus.amount, 0);
+
+  res.json({
+    referralCode: user.referralCode || 'GENERATE_CODE',
+    referralLink: `https://rfx-ecoverse.com/signup?ref=${user.referralCode || 'GENERATE_CODE'}`,
+    referredUsersCount,
+    totalEarnedFromReferrals,
+    referredUsers: referredUsers.map(u => ({ ...u.toObject(), status: 'active' })),
+  });
 });
 
 // @desc    Get user notifications

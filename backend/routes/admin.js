@@ -12,8 +12,13 @@ const {
   getPendingSubmissions,
   approveSubmission,
   rejectSubmission,
+  getDashboardSummary,
 } = require('../controllers/adminController');
 const { protect, authorizeRoles } = require('../middleware/authMiddleware');
+
+// Dashboard
+router.route('/dashboard-summary')
+  .get(protect, authorizeRoles('admin', 'super_admin'), getDashboardSummary);
 
 // User Management
 router.route('/users')

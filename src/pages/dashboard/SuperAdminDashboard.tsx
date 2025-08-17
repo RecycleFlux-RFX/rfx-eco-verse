@@ -53,31 +53,48 @@ interface SuperAdminDashboardData {
 const SuperAdminDashboard = () => {
   const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState<SuperAdminDashboardData | null>(null);
+  const [settings, setSettings] = useState([]);
+  const [admins, setAdmins] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      if (!user || user.role !== 'super_admin') {
-        setIsLoading(false);
-        setError('You don\'t have permission to access this page.');
-        return;
-      }
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await axios.get<SuperAdminDashboardData>(`${API_BASE_URL}/super-admin/dashboard-summary`);
-        setDashboardData(response.data);
-      } catch (err: any) {
-        console.error('Failed to fetch super admin dashboard data:', err.response?.data?.message || err.message);
-        setError(err.response?.data?.message || 'Failed to load dashboard data.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchAllData = async () => {
+    if (!user || user.role !== 'super_admin') {
+      setIsLoading(false);
+      setError('You don\'t have permission to access this page.');
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [dashboardResponse, settingsResponse, adminsResponse] = await Promise.all([
+        axios.get<SuperAdminDashboardData>(`${API_BASE_URL}/super-admin/dashboard-summary`),
+        axios.get(`${API_BASE_URL}/super-admin/settings`),
+        axios.get(`${API_BASE_URL}/super-admin/admins`)
+      ]);
+      setDashboardData(dashboardResponse.data);
+      setSettings(settingsResponse.data);
+      setAdmins(adminsResponse.data);
+    } catch (err: any) {
+      console.error('Failed to fetch super admin dashboard data:', err.response?.data?.message || err.message);
+      setError(err.response?.data?.message || 'Failed to load dashboard data.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    fetchDashboardData();
+  useEffect(() => {
+    fetchAllData();
   }, [user]);
+
+  const handleRemoveAdmin = async (adminId: string) => {
+    try {
+      await axios.delete(`${API_BASE_URL}/super-admin/admins/${adminId}`);
+      fetchAllData(); // Refresh data
+    } catch (error) {
+      console.error('Error removing admin:', error);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -105,7 +122,7 @@ const SuperAdminDashboard = () => {
       <div className="min-h-screen animated-bg flex items-center justify-center">
         <Card className="glass-card p-8 text-center">
           <CardTitle className="text-2xl mb-4">Access Denied</CardTitle>
-          <CardDescription>You don't have permission to access this page.</CardDescription>
+          <CardDescription>You don\'t have permission to access this page.</CardDescription>
         </Card>
       </div>
     );
@@ -199,34 +216,15 @@ const SuperAdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
-                  <div>
-                    <p className="text-sm font-medium">Daily Reward Amount</p>
-                    <p className="text-xs text-muted-foreground">Base RFX for daily login</p>
+                {settings.map((setting: any) => (
+                  <div key={setting._id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
+                    <div>
+                      <p className="text-sm font-medium">{setting.key}</p>
+                      <p className="text-xs text-muted-foreground">{setting.description}</p>
+                    </div>
+                    <Badge variant="outline">{setting.value}</Badge>
                   </div>
-                  <Badge variant="outline">{dashboardData?.dailyRewardAmount} RFX</Badge>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
-                  <div>
-                    <p className="text-sm font-medium">Campaign Reward Limit</p>
-                    <p className="text-xs text-muted-foreground">Max RFX per campaign</p>
-                  </div>
-                  <Badge variant="outline">{dashboardData?.campaignRewardLimit} RFX</Badge>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
-                  <div>
-                    <p className="text-sm font-medium">Referral Bonus</p>
-                    <p className="text-xs text-muted-foreground">RFX for successful referral</p>
-                  </div>
-                  <Badge variant="outline">{dashboardData?.referralBonus} RFX</Badge>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
-                  <div>
-                    <p className="text-sm font-medium">Maintenance Mode</p>
-                    <p className="text-xs text-muted-foreground">Platform accessibility</p>
-                  </div>
-                  <Badge className={dashboardData?.maintenanceMode === 'Active' ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"}>{dashboardData?.maintenanceMode}</Badge>
-                </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -239,35 +237,32 @@ const SuperAdminDashboard = () => {
                   <Shield className="w-5 h-5 mr-2" />
                   Admin Management
                 </span>
-                <Button size="sm" className="bg-gradient-primary hover:opacity-90">
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Admin
-                </Button>
+                <Link to="/super-admin/add-admin">
+                  <Button size="sm" className="bg-gradient-primary hover:opacity-90">
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Admin
+                  </Button>
+                </Link>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {[ // This data should be fetched from /api/super-admin/admins
-                  { name: 'David Wilson', email: 'david@rfx.com', status: 'Active', lastLogin: '2 hours ago' },
-                  { name: 'Emma Johnson', email: 'emma@rfx.com', status: 'Active', lastLogin: '1 day ago' },
-                  { name: 'Mike Brown', email: 'mike@rfx.com', status: 'Suspended', lastLogin: '1 week ago' },
-                ].map((admin, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
+                {admins.map((admin: any) => (
+                  <div key={admin._id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
                     <div>
-                      <p className="text-sm font-medium">{admin.name}</p>
-                      <p className="text-xs text-muted-foreground">{admin.email} • {admin.lastLogin}</p>
+                      <p className="text-sm font-medium">{admin.username}</p>
+                      <p className="text-xs text-muted-foreground">{admin.email}</p>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Badge 
-                        variant={admin.status === 'Active' ? 'default' : 'destructive'}
+                      <Badge
                         className="text-xs"
                       >
-                        {admin.status}
+                        {admin.role}
                       </Badge>
                       <Button size="sm" variant="ghost">
                         <Edit className="w-3 h-3" />
                       </Button>
-                      <Button size="sm" variant="ghost">
+                      <Button size="sm" variant="ghost" onClick={() => handleRemoveAdmin(admin._id)}>
                         <Trash2 className="w-3 h-3" />
                       </Button>
                     </div>

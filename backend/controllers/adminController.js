@@ -3,6 +3,36 @@ const User = require('../models/User');
 const Campaign = require('../models/Campaign');
 const Submission = require('../models/Submission');
 
+// --- Dashboard Summary ---
+const getDashboardSummary = asyncHandler(async (req, res) => {
+  const totalUsers = await User.countDocuments();
+
+  const oneMonthAgo = new Date();
+  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+  const newUsersLastMonth = await User.countDocuments({ joinedAt: { $gte: oneMonthAgo } });
+  const totalUsersLastMonth = totalUsers - newUsersLastMonth;
+  const newUsersLastMonthPercentage = totalUsersLastMonth > 0 ? (newUsersLastMonth / totalUsersLastMonth) * 100 : 0;
+
+  const activeCampaignsCount = await Campaign.countDocuments({ status: 'active' });
+  const pendingCampaignApprovalsCount = await Campaign.countDocuments({ status: 'pending' });
+
+  const pendingReviewsCount = await Submission.countDocuments({ status: 'pending' });
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const completedSubmissionsTodayCount = await Submission.countDocuments({ status: 'approved', updatedAt: { $gte: today } });
+
+  res.json({
+    totalUsers,
+    newUsersLastMonthPercentage: newUsersLastMonthPercentage.toFixed(0),
+    activeCampaignsCount,
+    pendingCampaignApprovalsCount,
+    pendingReviewsCount,
+    completedSubmissionsTodayCount,
+  });
+});
+
+
 // --- User Management ---
 
 // @desc    Get all users (for admin)
@@ -191,6 +221,7 @@ const rejectSubmission = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  getDashboardSummary,
   getUsers,
   getUserById,
   updateUser,

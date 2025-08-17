@@ -58,6 +58,11 @@ const UserSchema = new mongoose.Schema({
   joinedAt: {
     type: Date,
     default: Date.now
+  },
+  referredBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
   }
 });
 

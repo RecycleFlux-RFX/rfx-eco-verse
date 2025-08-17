@@ -33,6 +33,14 @@ import HelpPage from "./pages/HelpPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 import NotFound from "./pages/NotFound";
+import UserManagementPage from "./pages/admin/UserManagementPage";
+import CampaignManagementPage from "./pages/admin/CampaignManagementPage";
+import AddUserPage from "./pages/admin/AddUserPage";
+import AddCampaignPage from "./pages/admin/AddCampaignPage";
+import EditUserPage from "./pages/admin/EditUserPage";
+import EditCampaignPage from "./pages/admin/EditCampaignPage";
+import ReviewSubmissionPage from "./pages/admin/ReviewSubmissionPage";
+import AddAdminPage from "./pages/super-admin/AddAdminPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -132,11 +140,51 @@ const App = () => (
                       <AdminDashboard />
                     </ProtectedRoute>
                   } />
+                   <Route path="/admin/users" element={
+                    <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                      <UserManagementPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/admin/users/add" element={
+                    <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                      <AddUserPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/admin/users/edit/:id" element={
+                    <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                      <EditUserPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/admin/campaigns" element={
+                    <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                      <CampaignManagementPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/admin/campaigns/add" element={
+                    <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                      <AddCampaignPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/admin/campaigns/edit/:id" element={
+                    <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                      <EditCampaignPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/admin/submissions/review/:id" element={
+                    <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                      <ReviewSubmissionPage />
+                    </ProtectedRoute>
+                  } />
                   
                   {/* Super Admin Routes */}
                   <Route path="/super-admin" element={
                     <ProtectedRoute allowedRoles={['super_admin']}>
                       <SuperAdminDashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/super-admin/add-admin" element={
+                    <ProtectedRoute allowedRoles={['super_admin']}>
+                      <AddAdminPage />
                     </ProtectedRoute>
                   } />
                   

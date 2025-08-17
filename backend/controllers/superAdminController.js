@@ -2,6 +2,35 @@ const asyncHandler = require('express-async-handler');
 const PlatformSetting = require('../models/PlatformSetting');
 const User = require('../models/User');
 
+// --- Dashboard Summary ---
+const getDashboardSummary = asyncHandler(async (req, res) => {
+  // Mock data for now, as calculating all these metrics can be complex
+  res.json({
+    totalPlatformUsers: 12345,
+    newUsersLastMonthPercentage: 15,
+    rfxTokensDistributed: 5000000,
+    platformRevenueMonthly: 25000,
+    systemUptimePercentage: 99.9,
+    dailyRewardAmount: 10,
+    campaignRewardLimit: 1000,
+    referralBonus: 50,
+    maintenanceMode: 'Inactive',
+    databaseTotalRecords: 1234567,
+    databaseStorageUsedGB: 25.6,
+    databaseQueryPerformance: 'Good',
+    activeSessions: 1234,
+    countriesCount: 88,
+    peakConcurrentUsers: 5678,
+    sslStatus: 'OK',
+    firewallStatus: 'OK',
+    threatsBlockedCount: 123,
+    alerts: [
+      { type: 'warning', message: 'High CPU Usage', details: 'CPU usage is at 85%' },
+      { type: 'info', message: 'New Admin Added', details: 'A new admin was added to the system' },
+    ],
+  });
+});
+
 // --- Platform Settings ---
 
 // @desc    Get platform settings
@@ -130,6 +159,7 @@ const removeAdmin = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  getDashboardSummary,
   getPlatformSettings,
   updatePlatformSettings,
   getAdmins,

@@ -7,8 +7,13 @@ const {
   addAdmin,
   updateAdmin,
   removeAdmin,
+  getDashboardSummary,
 } = require('../controllers/superAdminController');
 const { protect, authorizeRoles } = require('../middleware/authMiddleware');
+
+// Dashboard
+router.route('/dashboard-summary')
+  .get(protect, authorizeRoles('super_admin'), getDashboardSummary);
 
 // Platform Settings
 router.route('/settings')
