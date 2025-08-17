@@ -29,7 +29,8 @@ const AddAdminPage = () => {
     setLoading(true);
     setError(null);
     try {
-      await axios.post('/api/super-admin/admins', formData);
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      await axios.post(`${API_BASE_URL}/super-admin/admins`, formData);
       // Optionally, redirect to the admin management page
     } catch (error: any) {
       setError(error.response?.data?.message || 'Error adding admin');

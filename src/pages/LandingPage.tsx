@@ -16,8 +16,11 @@ import {
   ChevronRight,
   Sparkles
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const LandingPage = () => {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen animated-bg">
       {/* Header */}
@@ -37,14 +40,24 @@ const LandingPage = () => {
           </div>
           
           <div className="flex items-center space-x-4">
-            <Link to="/login">
-              <Button variant="ghost">Login</Button>
-            </Link>
-            <Link to="/signup">
-              <Button className="bg-gradient-primary hover:opacity-90 glow-primary">
-                Get Started
-              </Button>
-            </Link>
+            {user ? (
+              <Link to="/dashboard">
+                <Button className="bg-gradient-primary hover:opacity-90 glow-primary">
+                  Go to Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost">Login</Button>
+                </Link>
+                <Link to="/signup">
+                  <Button className="bg-gradient-primary hover:opacity-90 glow-primary">
+                    Get Started
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </nav>
       </header>

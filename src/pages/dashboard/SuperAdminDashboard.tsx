@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/components/ui/use-toast'; // Import useToast
 import { useAuth } from '@/contexts/AuthContext';
 import axios from 'axios';
 import {
@@ -15,16 +16,13 @@ import {
   DollarSign,
   Shield,
   Activity,
-  Database,
+  // Removed Database, Globe, Lock, AlertTriangle imports
   Zap,
-  Globe,
-  Lock,
-  AlertTriangle,
-  CheckCircle,
   Plus,
   Edit,
   Trash2
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
@@ -38,20 +36,12 @@ interface SuperAdminDashboardData {
   campaignRewardLimit: number;
   referralBonus: number;
   maintenanceMode: string;
-  databaseTotalRecords: number;
-  databaseStorageUsedGB: number;
-  databaseQueryPerformance: string;
-  activeSessions: number;
-  countriesCount: number;
-  peakConcurrentUsers: number;
-  sslStatus: string;
-  firewallStatus: string;
-  threatsBlockedCount: number;
-  alerts: { type: string; message: string; details: string; }[];
+  // Removed database, global activity, security status, and alerts fields
 }
 
 const SuperAdminDashboard = () => {
   const { user } = useAuth();
+  const { toast } = useToast(); // Initialize useToast
   const [dashboardData, setDashboardData] = useState<SuperAdminDashboardData | null>(null);
   const [settings, setSettings] = useState([]);
   const [admins, setAdmins] = useState([]);
@@ -91,8 +81,18 @@ const SuperAdminDashboard = () => {
     try {
       await axios.delete(`${API_BASE_URL}/super-admin/admins/${adminId}`);
       fetchAllData(); // Refresh data
-    } catch (error) {
+      toast({
+        title: "Admin Removed",
+        description: "Admin role has been successfully removed.",
+        variant: "success",
+      });
+    } catch (error: any) {
       console.error('Error removing admin:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to remove admin.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -208,10 +208,12 @@ const SuperAdminDashboard = () => {
                   <Settings className="w-5 h-5 mr-2" />
                   Platform Settings
                 </span>
-                <Button size="sm" className="bg-gradient-accent hover:opacity-90">
-                  <Edit className="w-4 h-4 mr-1" />
-                  Configure
-                </Button>
+                <Link to="/super-admin/platform">
+                  <Button size="sm" className="bg-gradient-accent hover:opacity-90">
+                    <Edit className="w-4 h-4 mr-1" />
+                    Configure
+                  </Button>
+                </Link>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -259,9 +261,11 @@ const SuperAdminDashboard = () => {
                       >
                         {admin.role}
                       </Badge>
-                      <Button size="sm" variant="ghost">
-                        <Edit className="w-3 h-3" />
-                      </Button>
+                      <Link to={`/super-admin/admins/edit/${admin._id}`}>
+                        <Button size="sm" variant="ghost">
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                      </Link>
                       <Button size="sm" variant="ghost" onClick={() => handleRemoveAdmin(admin._id)}>
                         <Trash2 className="w-3 h-3" />
                       </Button>
@@ -273,118 +277,8 @@ const SuperAdminDashboard = () => {
           </Card>
         </div>
 
-        {/* System Analytics */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Database className="w-5 h-5 mr-2" />
-                Database Stats
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm">Total Records</span>
-                  <span className="font-medium">{dashboardData?.databaseTotalRecords / 1000}K</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Storage Used</span>
-                  <span className="font-medium">{dashboardData?.databaseStorageUsedGB} GB</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Query Performance</span>
-                  <Badge className="bg-success/20 text-success">{dashboardData?.databaseQueryPerformance}</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Removed System Analytics, Global Activity, Security Status, and Platform Alerts sections */}
 
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Globe className="w-5 h-5 mr-2" />
-                Global Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm">Active Sessions</span>
-                  <span className="font-medium">{dashboardData?.activeSessions}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Countries</span>
-                  <span className="font-medium">{dashboardData?.countriesCount}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Peak Concurrent</span>
-                  <span className="font-medium">{dashboardData?.peakConcurrentUsers}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Lock className="w-5 h-5 mr-2" />
-                Security Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">SSL Status</span>
-                  {dashboardData?.sslStatus === 'OK' ? <CheckCircle className="w-4 h-4 text-success" /> : <AlertTriangle className="w-4 h-4 text-destructive" />}
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Firewall</span>
-                  {dashboardData?.firewallStatus === 'OK' ? <CheckCircle className="w-4 h-4 text-success" /> : <AlertTriangle className="w-4 h-4 text-destructive" />}
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Threats Blocked</span>
-                  <span className="font-medium">{dashboardData?.threatsBlockedCount}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Critical Alerts */}
-        <Card className="glass-card border-warning/20">
-          <CardHeader>
-            <CardTitle className="flex items-center text-warning">
-              <AlertTriangle className="w-5 h-5 mr-2" />
-              Platform Alerts
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {dashboardData?.alerts.length > 0 ? (
-                dashboardData.alerts.map((alert, index) => (
-                  <div key={index} className={`flex items-center justify-between p-3 rounded-lg ${alert.type === 'warning' ? 'bg-warning/10 border border-warning/20' : 'bg-success/10 border border-success/20'}`}>
-                    <div>
-                      <p className="text-sm font-medium">{alert.message}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {alert.details}
-                      </p>
-                    </div>
-                    {alert.type === 'warning' ? (
-                      <Button size="sm" variant="outline">
-                        Review Limits
-                      </Button>
-                    ) : (
-                      <CheckCircle className="w-5 h-5 text-success" />
-                    )}
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">No platform alerts.</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

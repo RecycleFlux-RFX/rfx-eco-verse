@@ -61,19 +61,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('rfx_user');
-    const storedToken = localStorage.getItem('rfx_token');
-
-    if (storedUser && storedToken) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error('Failed to parse stored user or token:', error);
-        localStorage.removeItem('rfx_user');
-        localStorage.removeItem('rfx_token');
+    const loadUserFromToken = async () => {
+      const storedToken = localStorage.getItem('rfx_token');
+      if (storedToken) {
+        try {
+          // Set the token in axios headers for this request
+          axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+          const response = await axios.get(`${API_BASE_URL}/user/profile`);
+          setUser(response.data);
+        } catch (error) {
+          console.error('Failed to verify token or fetch user profile:', error);
+          localStorage.removeItem('rfx_token');
+          localStorage.removeItem('rfx_user'); // Also clear stale user data
+          setUser(null);
+        }
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+
+    loadUserFromToken();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {

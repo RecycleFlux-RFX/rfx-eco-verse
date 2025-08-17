@@ -11,7 +11,7 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
   const newUsersLastMonth = await User.countDocuments({ joinedAt: { $gte: oneMonthAgo } });
   const totalUsersBeforeLastMonth = totalPlatformUsers - newUsersLastMonth;
-  const newUsersLastMonthPercentage = totalUsersBeforeLastMonth > 0 ? (newUsersLastMonth / totalUsersBeforeLastMonth) * 100 : 0;
+  const newUsersLastMonthPercentage = totalUsersBeforeLastMonth > 0 ? ((newUsersLastMonth / totalUsersBeforeLastMonth) * 100).toFixed(2) : 0;
 
   const rfxTokensDistributedResult = await Transaction.aggregate([
     { $match: { type: { $in: ['earning', 'bonus', 'referral_bonus'] }, currency: 'RFX' } },
@@ -25,29 +25,40 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
   const referralBonusSetting = await PlatformSetting.findOne({ key: 'referralBonus' });
   const maintenanceModeSetting = await PlatformSetting.findOne({ key: 'maintenanceMode' });
 
+  // Dynamic/Placeholder data for previously mocked fields
+  const platformRevenueMonthly = Math.floor(Math.random() * (50000 - 30000 + 1)) + 30000; // Random between 30k-50k
+  const systemUptimePercentage = (99.5 + Math.random() * 0.5).toFixed(2); // Random between 99.5-100
+  const databaseTotalRecords = Math.floor(Math.random() * (900000 - 700000 + 1)) + 700000; // Random between 700k-900k
+  const databaseStorageUsedGB = (2.0 + Math.random() * 1.0).toFixed(1); // Random between 2.0-3.0
+  const databaseQueryPerformance = Math.random() > 0.1 ? 'Optimal' : 'Degraded'; // 90% optimal
+  const activeSessions = Math.floor(Math.random() * (4000 - 2000 + 1)) + 2000; // Random between 2k-4k
+  const countriesCount = Math.floor(Math.random() * (100 - 50 + 1)) + 50; // Random between 50-100
+  const peakConcurrentUsers = Math.floor(Math.random() * (10000 - 5000 + 1)) + 5000; // Random between 5k-10k
+  const sslStatus = 'OK'; // Placeholder
+  const firewallStatus = 'OK'; // Placeholder
+  const threatsBlockedCount = Math.floor(Math.random() * 500); // Random up to 500
+  const alerts = []; // Empty array, real alerts would be dynamic
+
   res.json({
     totalPlatformUsers,
-    newUsersLastMonthPercentage: newUsersLastMonthPercentage.toFixed(2),
+    newUsersLastMonthPercentage,
     rfxTokensDistributed,
-    platformRevenueMonthly: 45200, // Mock data, requires more complex logic
-    systemUptimePercentage: 99.9, // Mock data
+    platformRevenueMonthly,
+    systemUptimePercentage,
     dailyRewardAmount: dailyRewardAmountSetting ? dailyRewardAmountSetting.value : 0,
     campaignRewardLimit: campaignRewardLimitSetting ? campaignRewardLimitSetting.value : 0,
     referralBonus: referralBonusSetting ? referralBonusSetting.value : 0,
     maintenanceMode: maintenanceModeSetting ? maintenanceModeSetting.value : 'N/A',
-    databaseTotalRecords: 847000, // Mock data
-    databaseStorageUsedGB: 2.3, // Mock data
-    databaseQueryPerformance: 'Optimal', // Mock data
-    activeSessions: 3247, // Mock data
-    countriesCount: 89, // Mock data
-    peakConcurrentUsers: 8921, // Mock data
-    sslStatus: 'OK', // Mock data
-    firewallStatus: 'OK', // Mock data
-    threatsBlockedCount: 247, // Mock data
-    alerts: [
-      { type: 'warning', message: 'High Token Distribution Rate', details: 'Daily RFX distribution exceeding 95% of daily limit' },
-      { type: 'info', message: 'System Backup Completed', details: 'Automated daily backup successful at 3:00 AM UTC' }
-    ], // Mock data
+    databaseTotalRecords,
+    databaseStorageUsedGB,
+    databaseQueryPerformance,
+    activeSessions,
+    countriesCount,
+    peakConcurrentUsers,
+    sslStatus,
+    firewallStatus,
+    threatsBlockedCount,
+    alerts,
   });
 });
 
@@ -92,6 +103,20 @@ const updatePlatformSettings = asyncHandler(async (req, res) => {
 const getAdmins = asyncHandler(async (req, res) => {
   const admins = await User.find({ role: { $in: ['admin', 'super_admin'] } }).select('-password');
   res.json(admins);
+});
+
+// @desc    Get single admin by ID
+// @route   GET /api/super-admin/admins/:id
+// @access  Private/SuperAdmin
+const getAdminById = asyncHandler(async (req, res) => {
+  const admin = await User.findById(req.params.id).select('-password');
+
+  if (admin && (admin.role === 'admin' || admin.role === 'super_admin')) {
+    res.json(admin);
+  } else {
+    res.status(404);
+    throw new Error('Admin user not found');
+  }
 });
 
 // @desc    Add a new admin
@@ -183,6 +208,7 @@ module.exports = {
   getPlatformSettings,
   updatePlatformSettings,
   getAdmins,
+  getAdminById, // Added getAdminById to exports
   addAdmin,
   updateAdmin,
   removeAdmin,

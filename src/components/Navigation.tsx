@@ -36,9 +36,22 @@ const Navigation: React.FC = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const userNavItems = [
-    { path: '/user-dashboard', label: 'Dashboard', icon: Home },
+  // Determine the correct dashboard path based on user role
+  let dashboardPath = '/user-dashboard';
+  if (user.role === 'super_admin') {
+    dashboardPath = '/super-admin';
+  } else if (user.role === 'admin') {
+    dashboardPath = '/admin';
+  }
+
+  // Common items for all roles
+  const baseNavItems = [
+    { path: dashboardPath, label: 'Dashboard', icon: Home },
     { path: '/profile', label: 'Profile', icon: User },
+  ];
+
+  // User-specific items (excluding those in baseNavItems)
+  const userSpecificNavItems = [
     { path: '/wallet', label: 'Wallet', icon: Wallet },
     { path: '/games', label: 'Games', icon: Gamepad2 },
     { path: '/campaigns', label: 'Campaigns', icon: Target },
@@ -48,7 +61,8 @@ const Navigation: React.FC = () => {
     { path: '/nft', label: 'NFTs', icon: Zap },
   ];
 
-  const adminNavItems = [
+  // Admin-specific items
+  const adminSpecificNavItems = [
     { path: '/admin', label: 'Admin Dashboard', icon: Shield },
     { path: '/admin/users', label: 'Manage Users', icon: UserCheck },
     { path: '/admin/games', label: 'Manage Games', icon: Gamepad2 },
@@ -56,21 +70,35 @@ const Navigation: React.FC = () => {
     { path: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
   ];
 
-  const superAdminNavItems = [
+  // Super Admin-specific items
+  const superAdminSpecificNavItems = [
     { path: '/super-admin', label: 'Super Admin', icon: Crown },
     { path: '/super-admin/platform', label: 'Platform Settings', icon: Settings },
     { path: '/super-admin/reports', label: 'Reports', icon: BarChart3 },
-    ...adminNavItems,
+    { path: '/super-admin/add-admin', label: 'Add Admin', icon: UserCheck },
   ];
 
   const getNavItems = () => {
     switch (user.role) {
       case 'super_admin':
-        return [...userNavItems, ...superAdminNavItems];
+        // Super admin needs Dashboard, Profile, Settings, Logout, and super-admin specific links
+        return [
+          ...baseNavItems,
+          ...superAdminSpecificNavItems.filter(item => item.path !== '/super-admin'), // Avoid duplicate Super Admin link
+        ];
       case 'admin':
-        return [...userNavItems, ...adminNavItems];
+        // Admin needs Dashboard, Profile, Settings, Logout, user-specific, and admin-specific links
+        return [
+          ...baseNavItems,
+          ...userSpecificNavItems,
+          ...adminSpecificNavItems.filter(item => item.path !== '/admin'), // Avoid duplicate Admin Dashboard link
+        ];
       default:
-        return userNavItems;
+        // Regular user needs Dashboard, Profile, Settings, Logout, and user-specific links
+        return [
+          ...baseNavItems,
+          ...userSpecificNavItems,
+        ];
     }
   };
 
@@ -109,7 +137,7 @@ const Navigation: React.FC = () => {
             })}
           </div>
 
-          {/* User Menu */}
+          {/* User Menu (Settings and Logout are here) */}
           <div className="flex items-center space-x-4">
             <Badge 
               className={

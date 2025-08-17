@@ -7,6 +7,7 @@ const {
   addAdmin,
   updateAdmin,
   removeAdmin,
+  getAdminById, // Added getAdminById
   getDashboardSummary,
 } = require('../controllers/superAdminController');
 const { protect, authorizeRoles } = require('../middleware/authMiddleware');
@@ -25,6 +26,7 @@ router.route('/admins')
   .get(protect, authorizeRoles('super_admin'), getAdmins)
   .post(protect, authorizeRoles('super_admin'), addAdmin);
 router.route('/admins/:id')
+  .get(protect, authorizeRoles('super_admin'), getAdminById) // Added GET route for single admin
   .patch(protect, authorizeRoles('super_admin'), updateAdmin)
   .delete(protect, authorizeRoles('super_admin'), removeAdmin);
 
